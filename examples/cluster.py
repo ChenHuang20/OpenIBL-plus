@@ -14,6 +14,8 @@ from torch.backends import cudnn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
+sys.path.append(os.getcwd())
+
 from ibl import datasets
 from ibl import models
 from ibl.evaluators import extract_features, pairwise_distance
@@ -40,7 +42,6 @@ def get_data(args, nIm):
 
 def get_model(args):
     model = models.create(args.arch, pretrained=True, cut_at_pooling=True, matconvnet='logs/vd16_offtheshelf_conv5_3_max.pth')
-    #model = models.create("vgg16",pretrained=True,cut_at_pooling=True)
     model.cuda()
     model = nn.DataParallel(model)
     return model
@@ -51,13 +52,14 @@ def main():
     if args.seed is not None:
         random.seed(args.seed)
         np.random.seed(args.seed)
-        torch.manual_seed(args.seed)
-        torch.cuda.manual_seed(args.seed)
+        torch.manual_seed(args.seed) #为CPU设置种子用于生成随机数，以使得结果是确定的
+        torch.cuda.manual_seed(args.seed) #为当前GPU设置随机种子
         cudnn.deterministic = True
 
     main_worker(args)
 
 def main_worker(args):
+    # 大部分情况下，设置这个可以让内置的 cuDNN 的 auto-tuner 自动寻找最适合当前配置的高效算法，来达到优化运行效率的问题。
     cudnn.benchmark = True
 
     print("==========\nArgs:{}\n==========".format(args))
@@ -82,6 +84,7 @@ def main_worker(args):
     if not osp.exists(osp.join(args.logs_dir)):
         os.makedirs(osp.join(args.logs_dir))
 
+    # 聚类结果保存路径与名字
     initcache = osp.join(args.logs_dir, args.arch + '_' + args.dataset + '_' + str(args.num_clusters) + '_desc_cen.hdf5')
     with h5py.File(initcache, mode='w') as h5:
         with torch.no_grad():
@@ -134,7 +137,8 @@ if __name__ == '__main__':
                         choices=models.names())
     parser.add_argument('--resume', type=str, default='', metavar='PATH')
     # path
-    working_dir = osp.dirname(osp.abspath(__file__))
+    working_dir = osp.dirname(osp.abspath(__file__)) #/home/hc/vrp/OpenIBL-plus/examples
+
     parser.add_argument('--data-dir', type=str, metavar='PATH',
                         default=osp.join(working_dir, 'data'))
     parser.add_argument('--logs-dir', type=str, metavar='PATH',

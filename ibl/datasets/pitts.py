@@ -24,6 +24,7 @@ def parse_dbStruct(path):
 class Pittsburgh(Dataset):
 
     def __init__(self, root, scale='250k', verbose=True):
+        # super(Pittsburgh, self)将返回当前类继承的父类，即Dataset,然后调用__init__()方法去初始化父类的root
         super(Pittsburgh, self).__init__(root)
         self.scale = scale
 

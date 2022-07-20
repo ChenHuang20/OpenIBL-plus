@@ -102,6 +102,7 @@ class VGG(nn.Module):
         vgg = VGG.__factory[depth](pretrained=pretrained)
         layers = list(vgg.features.children())[:-2]
         self.base = nn.Sequential(*layers) # capture only feature part and remove last relu and maxpool
+        # 增加两个注意力通道
         self.ca=ChannelAttention(in_planes=self.feature_dim)
         self.sa=SpatialAttention()
         self.gap = nn.AdaptiveMaxPool2d(1)
@@ -124,11 +125,14 @@ class VGG(nn.Module):
 
     def forward(self, x):
         x = self.base(x)
+
+        # 注意力前向传播
         b, c, _, _ = x.size()
         residual=x
         out=x*self.ca(x)
         out=out*self.sa(out)
         x = out + residual
+
         if self.cut_at_pooling:
             return x
 
